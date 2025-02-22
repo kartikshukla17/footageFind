@@ -1,0 +1,46 @@
+{
+    "response": [
+        {
+            "scene_order": 1,
+            "scene_type": "intro",
+            "scene_type_reason": "This scene introduces the product WSF 13:40:13 and provides a basic overview.",
+            "scene_phrase": "डिहाट से WSF 13:40:13 का परिचय",
+            "lipsync": false
+        },
+        {
+            "scene_order": 2,
+            "scene_type": "avatar_product",
+            "scene_type_reason": "This scene explains what the product is and its main function.",
+            "scene_phrase": "एक शक्तिशाली जल-घुलनशील उर्वरक जो आपकी फसल की वृद्धि और उपज को बढ़ाता है।",
+            "lipsync": true
+        },
+        {
+            "scene_order": 3,
+            "scene_type": "image_text",
+            "scene_type_reason": "This scene highlights a specific benefit of the product without using a list format.",
+            "scene_phrase": "यह Nutri One उत्पाद नई जड़ों को विकसित करके फसल को बढ़ाता है और वनस्पति वृद्धि या फूल आने के चरणों के लिए उपयुक्त है।",
+            "lipsync": false
+        },
+        {
+            "scene_order": 4,
+            "scene_type": "icon_text",
+            "scene_type_reason": "This scene lists multiple benefits of the product, suitable for an icon-text format.",
+            "scene_phrase": "प्रमुख लाभों में फूलों का गिरना कम करना और फल बनने की प्रक्रिया को बढ़ाना शामिल है, जिससे उपज और गुणवत्तापूर्ण उत्पादन में वृद्धि होती है।",
+            "lipsync": false
+        },
+        {
+            "scene_order": 5,
+            "scene_type": "product_dosage",
+            "scene_type_reason": "This scene provides specific instructions for the product's usage and dosage.",
+            "scene_phrase": "सर्वोत्तम परिणामों के लिए, स्प्रे के रूप में प्रयोग करने के लिए प्रति लीटर पानी में 5 ग्राम WSF 13:40:13 का उपयोग करें।",
+            "lipsync": false
+        },
+        {
+            "scene_order": 6,
+            "scene_type": "end_cta",
+            "scene_type_reason": "This scene concludes the script with a call-to-action for purchasing the product.",
+            "scene_phrase": "खरीदने के लिए अपने नजदीकी Dehaat स्टोर पर जाएँ।",
+            "lipsync": false
+        }
+    ]
+}
