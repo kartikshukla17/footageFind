@@ -21,7 +21,7 @@ export default function Home() {
       {/* Footer Section */}
       <footer className="mt-16 text-center text-sm text-gray-500">
         <p>
-          Built with ❤️ by{" Kartik Shukla"}
+          Built by {" Kartik Shukla"}
         </p>
       </footer>
     </main>
