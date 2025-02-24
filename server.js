@@ -8,7 +8,7 @@ require("dotenv").config();
 
 const app = express();
 app.use(cors({
-  origin: 'https://your-frontend-domain.vercel.app', // Replace with your frontend URL
+  origin: 'https://footage-find.vercel.app', // Replace with your frontend URL
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],  
 }));
