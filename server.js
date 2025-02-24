@@ -7,16 +7,17 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 require("dotenv").config();
 
 const app = express();
+
+// CORS Configuration
 app.use(cors({
-  origin: 'https://footage-find.vercel.app', // Replace with your frontend URL
+  origin: 'https://footage-find.vercel.app', // Update with your frontend URL
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],  
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
 app.use(express.json());
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
+// File upload configuration
 const upload = multer({ dest: "uploads/" });
 
 // Initialize Gemini
@@ -45,7 +46,6 @@ const extractKeywords = async (scriptText) => {
 
     console.log("Raw Gemini Response:", text);
 
-    // Extract keywords from the plain text response as an array
     return text
       .replace(/\n|\r/g, "")
       .replace(/[^a-zA-Z0-9, ]/g, "")
@@ -58,7 +58,7 @@ const extractKeywords = async (scriptText) => {
   }
 };
 
-// 🌟 Pexels API Call
+// Pexels API Call for Photos
 const fetchFromPexels = async (keyword) => {
   try {
     const response = await axios.get(`https://api.pexels.com/v1/search`, {
@@ -67,8 +67,6 @@ const fetchFromPexels = async (keyword) => {
       },
       params: { query: keyword, per_page: 5 },
     });
-
-    console.log(`Pexels API Response for ${keyword}:`, response.data);
 
     return response.data.photos.map((photo) => ({
       url: photo.src.medium,
@@ -81,21 +79,19 @@ const fetchFromPexels = async (keyword) => {
   }
 };
 
-// 🌟 Pexels Video API Call
+// Pexels Video API Call
 const fetchVideosFromPexels = async (keyword) => {
   try {
     const response = await axios.get(`https://api.pexels.com/videos/search`, {
       headers: {
         Authorization: process.env.PEXELS_API_KEY,
       },
-      params: { query: keyword, per_page: 5 }, // Fetch 5 videos per keyword
+      params: { query: keyword, per_page: 5 },
     });
 
-    console.log(`Pexels Video API Response for ${keyword}:`, response.data);
-
     return response.data.videos.map((video) => ({
-      url: video.video_files[0].link, // Use the first video file link
-      image: video.image, // Thumbnail image for the video
+      url: video.video_files[0].link,
+      image: video.image,
       photographer: video.user.name,
       source: "Pexels",
     }));
@@ -105,16 +101,14 @@ const fetchVideosFromPexels = async (keyword) => {
   }
 };
 
-// 🌟 Media Fetching for All Keywords (Photos + Videos)
+// Media Fetching for All Keywords (Photos + Videos)
 const fetchMediaForKeywords = async (keywords) => {
   const mediaResults = [];
 
   for (const keyword of keywords) {
-    // Fetch photos for the keyword
     const pexelsPhotos = await fetchFromPexels(keyword);
     mediaResults.push(...pexelsPhotos);
 
-    // Fetch videos for the keyword
     const pexelsVideos = await fetchVideosFromPexels(keyword);
     mediaResults.push(...pexelsVideos);
   }
@@ -139,7 +133,6 @@ app.post("/upload", upload.single("script"), async (req, res) => {
       const scriptText = extractScriptText(jsonData);
       const keywords = await extractKeywords(scriptText);
 
-      // Fetch media (photos + videos) using the extracted keywords
       const mediaResults = await fetchMediaForKeywords(keywords);
 
       res.json({ 
@@ -157,4 +150,6 @@ app.post("/upload", upload.single("script"), async (req, res) => {
   });
 });
 
-app.listen(5000, () => console.log("Server running on port 5000"));
+// ✅ Corrected Single `app.listen` Usage
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
