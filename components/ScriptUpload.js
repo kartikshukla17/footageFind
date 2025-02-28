@@ -9,7 +9,7 @@ const ScriptUpload = () => {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [keywords, setKeywords] = useState([]);
-  const [media, setMedia] = useState([]); // 🌟 New state for media results
+  const [media, setMedia] = useState([]); 
   const [message, setMessage] = useState("");
 
   const { getRootProps, getInputProps } = useDropzone({
@@ -35,15 +35,16 @@ const ScriptUpload = () => {
     setMessage("");
 
     try {
-      const response = await axios.post("https://footagefind.onrender.com/upload", formData, {
+      const response = await axios.post("/api", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-
+     
       setMessage(response.data.message);
       setKeywords(response.data.keywords || []);
-      setMedia(response.data.media || []); // 🌟 Set media from API response
+      setMedia(response.data.media || []); 
 
     } catch (error) {
+      console.log(error)
       setMessage("Upload failed. Try again.");
       setKeywords([]);
       setMedia([]);

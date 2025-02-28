@@ -1,26 +1,8 @@
-const express = require("express");
-const cors = require("cors");
-const multer = require("multer");
+
 const fs = require("fs");
 const axios = require("axios");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 require("dotenv").config();
-
-const app = express();
-
-// CORS Configuration
-app.use(cors({
-  origin: 'https://footage-find.vercel.app/', // Update with your frontend URL
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
-
-app.use(express.json());
-
-// File upload configuration
-const upload = multer({ dest: "uploads/" });
-
-// Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Extract text from JSON
@@ -33,7 +15,7 @@ const extractScriptText = (jsonData) => {
 
 // Enhanced Keyword Extraction
 const extractKeywords = async (scriptText) => {
-  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   const prompt = `Extract a flat, well-organized list of relevant keywords from the following text for API calls.
   Provide a plain, comma-separated list of keywords related to locations, actions, objects, moods, and time/weather.
@@ -116,40 +98,39 @@ const fetchMediaForKeywords = async (keywords) => {
   return mediaResults;
 };
 
-// File upload and processing route
-app.post("/upload", upload.single("script"), async (req, res) => {
-  if (!req.file) return res.status(400).json({ message: "No file uploaded" });
-
-  const filePath = req.file.path;
-
-  fs.readFile(filePath, "utf8", async (err, data) => {
-    if (err) {
-      fs.unlinkSync(filePath);
-      return res.status(500).json({ message: "Error reading file" });
+export async function POST(request){
+    const fileData=await request.formData();
+    const data=fileData.get('script');
+   if (!data) return new Response(JSON.stringify({ 
+    message: "No file uploaded",
+  }),{status:500});
+    let fileDataU8=[];
+     const reader =data.stream().getReader();
+    while(true){
+        const {done ,value}=await reader.read();
+        if(done) break;
+        fileDataU8.push(...value);
     }
-
-    try {
-      const jsonData = JSON.parse(data);
-      const scriptText = extractScriptText(jsonData);
-      const keywords = await extractKeywords(scriptText);
-
-      const mediaResults = await fetchMediaForKeywords(keywords);
-
-      res.json({ 
-        message: "File uploaded successfully!", 
-        keywords, 
-        media: mediaResults 
-      });
-
-    } catch (error) {
-      console.error("Processing Error:", error.message);
-      res.status(500).json({ message: "Error extracting keywords or fetching media" });
-    } finally {
-      fs.unlinkSync(filePath);
-    }
-  });
-});
-
-// ✅ Corrected Single `app.listen` Usage
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+        const textData = Buffer.from(fileDataU8).toString();
+        
+       try {
+         const jsonData = JSON.parse(textData);
+         const scriptText = extractScriptText(jsonData);
+         const keywords = await extractKeywords(scriptText);
+   
+         const mediaResults = await fetchMediaForKeywords(keywords);
+            
+         return new Response(JSON.stringify({ 
+           message: "File uploaded successfully!", 
+           keywords, 
+           media: mediaResults 
+         }));
+   
+       } catch (error) {
+         console.error("Processing Error:", error.message);
+         return new Response(JSON.stringify({ 
+            message: "Error extracting keywords or fetching media",
+          }),{status:500});
+       }
+     
+}
