@@ -1,3 +1,5 @@
+import "./globals.css"
+
 export const metadata = {
   title: "Find Footage from Script",
   description: "Upload a script and find related stock footage.",
