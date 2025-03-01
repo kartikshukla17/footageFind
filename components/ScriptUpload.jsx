@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
 import Image from "next/image";
-import { motion } from "framer-motion";
+
 
 const ScriptUpload = () => {
   const [file, setFile] = useState(null);
@@ -54,7 +54,7 @@ const ScriptUpload = () => {
   };
 
   return (
-    <motion.div 
+    <div 
       className="p-8 bg-white shadow-2xl rounded-2xl max-w-xl mx-auto mt-10 border border-gray-200"
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
@@ -125,7 +125,7 @@ const ScriptUpload = () => {
           </div>
         </div>
       )}
-    </motion.div>
+    </div>
   );
 };
 
