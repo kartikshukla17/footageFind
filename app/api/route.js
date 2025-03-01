@@ -5,7 +5,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 require("dotenv").config();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Extract text from JSON
+// JSON extract
 const extractScriptText = (jsonData) => {
   if (jsonData.response && Array.isArray(jsonData.response)) {
     return jsonData.response.map((scene) => scene.scene_phrase).join(" ");
@@ -13,7 +13,7 @@ const extractScriptText = (jsonData) => {
   throw new Error("Invalid JSON format");
 };
 
-// Enhanced Keyword Extraction
+// Keyword Extract
 const extractKeywords = async (scriptText) => {
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
@@ -40,7 +40,7 @@ const extractKeywords = async (scriptText) => {
   }
 };
 
-// Pexels API Call for Photos
+// for Photos
 const fetchFromPexels = async (keyword) => {
   try {
     const response = await axios.get(`https://api.pexels.com/v1/search`, {
@@ -61,7 +61,7 @@ const fetchFromPexels = async (keyword) => {
   }
 };
 
-// Pexels Video API Call
+// for videos
 const fetchVideosFromPexels = async (keyword) => {
   try {
     const response = await axios.get(`https://api.pexels.com/videos/search`, {
@@ -83,7 +83,7 @@ const fetchVideosFromPexels = async (keyword) => {
   }
 };
 
-// Media Fetching for All Keywords (Photos + Videos)
+// to show the fetched
 const fetchMediaForKeywords = async (keywords) => {
   const mediaResults = [];
 
