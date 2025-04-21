@@ -1,4 +1,3 @@
-
 const fs = require("fs");
 const axios = require("axios");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -8,18 +7,53 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 // JSON extract
 const extractScriptText = (jsonData) => {
   if (jsonData.response && Array.isArray(jsonData.response)) {
-    return jsonData.response.map((scene) => scene.scene_phrase).join(" ");
+    return jsonData.response;
   }
   throw new Error("Invalid JSON format");
 };
 
-// Keyword Extract
-const extractKeywords = async (scriptText) => {
+// Keyword Extract for each scene
+const extractKeywordsForScenes = async (scenes) => {
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-  const prompt = `Extract a flat, well-organized list of relevant keywords from the following text for API calls.
-  Provide a plain, comma-separated list of keywords related to locations, actions, objects, moods, and time/weather.
-  Avoid adding any labels or categories—just the keywords. Here is the text: ${scriptText}`;
+  const prompt = `
+You are a Creative Media Planner. Analyze each scene from the script and extract relevant keywords.
+
+Script scenes:
+${JSON.stringify(scenes, null, 2)}
+
+For *each* scene, do the following:
+
+1. Extract 5–8 crisp keywords from scene_phrase (locations, objects, actions, moods, lighting, time of day, etc.).  
+2. Based on the scene_type, recommend:
+   – **Media Type** (Image, Video, Icon, Animation)  
+   – **Style/Composition** (e.g. "wide establishing shot at sunrise," "clean icon set, line‑art style," "3–5s looping product demo")  
+   – **Stock Search Query** for Pexels (or similar) to fetch that asset.  
+
+Output **as JSON**, with one entry per scene, using this exact structure:
+
+[
+  {
+    "scene_order": 1,
+    "scene_type": "intro",
+    "scene_phrase": "Introduction example",
+    "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"],
+    "mediaSuggestions": [
+      {
+        "type": "Video",
+        "style": "Style description",
+        "searchQuery": "search query string"
+      },
+      {
+        "type": "Image", 
+        "style": "Style description",
+        "searchQuery": "search query string"
+      }
+    ]
+  }
+]
+
+Return ONLY valid JSON without any other text.`;
 
   try {
     const result = await model.generateContent(prompt);
@@ -28,47 +62,49 @@ const extractKeywords = async (scriptText) => {
 
     console.log("Raw Gemini Response:", text);
 
-    return text
-      .replace(/\n|\r/g, "")
-      .replace(/[^a-zA-Z0-9, ]/g, "")
-      .split(",")
-      .map((kw) => kw.trim())
-      .filter((kw) => kw);
+    // Extract the JSON part from the response and parse it
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    } else {
+      throw new Error("Could not extract JSON from Gemini response");
+    }
   } catch (error) {
     console.error("Error during keyword extraction:", error);
     throw new Error("Failed to extract keywords from Gemini");
   }
 };
 
-// for Photos
-const fetchFromPexels = async (keyword) => {
+// Fetch photos from Pexels
+const fetchFromPexels = async (searchQuery) => {
   try {
     const response = await axios.get(`https://api.pexels.com/v1/search`, {
       headers: {
         Authorization: process.env.PEXELS_API_KEY,
       },
-      params: { query: keyword, per_page: 5 },
+      params: { query: searchQuery, per_page: 3 },
     });
 
     return response.data.photos.map((photo) => ({
       url: photo.src.medium,
       photographer: photo.photographer,
       source: "Pexels",
+      type: "image"
     }));
   } catch (error) {
-    console.error(`Error fetching from Pexels: ${keyword}`, error.message);
+    console.error(`Error fetching from Pexels: ${searchQuery}`, error.message);
     return [];
   }
 };
 
-// for videos
-const fetchVideosFromPexels = async (keyword) => {
+// Fetch videos from Pexels
+const fetchVideosFromPexels = async (searchQuery) => {
   try {
     const response = await axios.get(`https://api.pexels.com/videos/search`, {
       headers: {
         Authorization: process.env.PEXELS_API_KEY,
       },
-      params: { query: keyword, per_page: 5 },
+      params: { query: searchQuery, per_page: 3 },
     });
 
     return response.data.videos.map((video) => ({
@@ -76,61 +112,75 @@ const fetchVideosFromPexels = async (keyword) => {
       image: video.image,
       photographer: video.user.name,
       source: "Pexels",
+      type: "video"
     }));
   } catch (error) {
-    console.error(`Error fetching videos from Pexels: ${keyword}`, error.message);
+    console.error(`Error fetching videos from Pexels: ${searchQuery}`, error.message);
     return [];
   }
 };
 
-// to show the fetched
-const fetchMediaForKeywords = async (keywords) => {
-  const mediaResults = [];
+// Fetch media for each scene
+const fetchMediaForScenes = async (scenes) => {
+  const scenesWithMedia = [];
 
-  for (const keyword of keywords) {
-    const pexelsPhotos = await fetchFromPexels(keyword);
-    mediaResults.push(...pexelsPhotos);
-
-    const pexelsVideos = await fetchVideosFromPexels(keyword);
-    mediaResults.push(...pexelsVideos);
+  for (const scene of scenes) {
+    const sceneMedia = [];
+    
+    // Process each media suggestion
+    for (const suggestion of scene.mediaSuggestions) {
+      if (suggestion.type.toLowerCase() === "video") {
+        const videos = await fetchVideosFromPexels(suggestion.searchQuery);
+        sceneMedia.push(...videos);
+      } else if (suggestion.type.toLowerCase() === "image") {
+        const images = await fetchFromPexels(suggestion.searchQuery);
+        sceneMedia.push(...images);
+      }
+    }
+    
+    scenesWithMedia.push({
+      ...scene,
+      media: sceneMedia
+    });
   }
 
-  return mediaResults;
+  return scenesWithMedia;
 };
 
-export async function POST(request){
-    const fileData=await request.formData();
-    const data=fileData.get('script');
-   if (!data) return new Response(JSON.stringify({ 
+export async function POST(request) {
+  const fileData = await request.formData();
+  const data = fileData.get('script');
+  
+  if (!data) return new Response(JSON.stringify({ 
     message: "No file uploaded",
-  }),{status:500});
-    let fileDataU8=[];
-     const reader =data.stream().getReader();
-    while(true){
-        const {done ,value}=await reader.read();
-        if(done) break;
-        fileDataU8.push(...value);
-    }
-        const textData = Buffer.from(fileDataU8).toString();
+  }), {status: 500});
+  
+  let fileDataU8 = [];
+  const reader = data.stream().getReader();
+  
+  while(true) {
+    const {done, value} = await reader.read();
+    if(done) break;
+    fileDataU8.push(...value);
+  }
+  
+  const textData = Buffer.from(fileDataU8).toString();
+      
+  try {
+    const jsonData = JSON.parse(textData);
+    const scenes = extractScriptText(jsonData);
+    const scenesWithKeywords = await extractKeywordsForScenes(scenes);
+    const scenesWithMedia = await fetchMediaForScenes(scenesWithKeywords);
         
-       try {
-         const jsonData = JSON.parse(textData);
-         const scriptText = extractScriptText(jsonData);
-         const keywords = await extractKeywords(scriptText);
-   
-         const mediaResults = await fetchMediaForKeywords(keywords);
-            
-         return new Response(JSON.stringify({ 
-           message: "File uploaded successfully!", 
-           keywords, 
-           media: mediaResults 
-         }));
-   
-       } catch (error) {
-         console.error("Processing Error:", error.message);
-         return new Response(JSON.stringify({ 
-            message: "Error extracting keywords or fetching media",
-          }),{status:500});
-       }
-     
+    return new Response(JSON.stringify({ 
+      message: "File uploaded successfully!", 
+      scenes: scenesWithMedia
+    }));
+
+  } catch (error) {
+    console.error("Processing Error:", error.message);
+    return new Response(JSON.stringify({ 
+      message: "Error extracting keywords or fetching media: " + error.message,
+    }), {status: 500});
+  }
 }
