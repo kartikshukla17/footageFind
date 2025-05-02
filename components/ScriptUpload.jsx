@@ -50,7 +50,7 @@ const ScriptUpload = () => {
 
   return (
     <div 
-      className="p-8 bg-white shadow-2xl rounded-2xl max-w-4xl mx-auto mt-10 border border-gray-200"
+      className="p-8 bg-white shadow-2xl rounded-2xl max-w-4xl mx-auto mt-10 border border-gray-600"
     >
       <h1 className="text-2xl font-bold text-center mb-6">Script Media Generator</h1>
       
